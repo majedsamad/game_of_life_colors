@@ -7,6 +7,20 @@
 
     <script src="https://cdn.jsdelivr.net/npm/p5@1.9.4/lib/p5.js"></script>
 
+    <div id="controls" style="margin-bottom: 10px;">
+        <label for="gridSize">Grid Size:</label>
+        <input type="text" id="gridSize" value="75" size="5">
+        <label for="numColors">Number of Colors:</label>
+        <input type="text" id="numColors" value="8" size="3">
+        <label for="fps">FPS:</label>
+        <input type="text" id="fps" value="60" size="3">
+        <button id="startGameBtn">Start Game</button>
+        <br>
+        <button id="pausePlayBtn">Pause</button>
+        <button id="resetBtn">Reset</button>
+        <button id="stepBtn">Step</button>
+    </div>
+
     <canvas id="gc" width="1250" height="1250"></canvas>
     <script type="text/javascript">
         cols = rows = 75; // Default, will be overridden by input
@@ -271,19 +285,7 @@
 
 
 <body>
-    <div id="controls" style="margin-bottom: 10px;">
-        <label for="gridSize">Grid Size:</label>
-        <input type="text" id="gridSize" value="75" size="5">
-        <label for="numColors">Number of Colors:</label>
-        <input type="text" id="numColors" value="8" size="3">
-        <label for="fps">FPS:</label>
-        <input type="text" id="fps" value="60" size="3">
-        <button id="startGameBtn">Start Game</button>
-        <br>
-        <button id="pausePlayBtn">Pause</button>
-        <button id="resetBtn">Reset</button>
-        <button id="stepBtn">Step</button>
-    </div>
+
 
 </body>
 
