@@ -1,0 +1,245 @@
+<html>
+
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <script src="https://cdn.jsdelivr.net/npm/p5@1.9.4/lib/p5.js"></script>
+
+    <canvas id="gc" width="1250" height="1250"></canvas>
+    <script type="text/javascript">
+        cols = rows = 200;
+        numCols = 8;
+        colors = ["red", "green", "blue", "yellow", "cyan", "pink", "purple", "orange"];
+        prob = 10 / (rows * cols);
+        wid = hei = 0;
+        grid = [];
+        var frames = 60;
+        var myInterval;
+        var paused = 0;
+        window.onload = function () {
+            canv = document.getElementById("gc");
+            c = canv.getContext("2d");
+            var dlg1 = prompt("Please enter a grid size", "75");
+            if (dlg1 != null || dlg1 != "") {
+                rows = cols = dlg1;
+            }
+            var dlg2 = prompt("Please enter the number of colors", "8");
+            if (dlg2 != null || dlg2 != "") {
+                numCols = dlg2;
+            }
+            var dlg3 = prompt("Please enter the number of frames per second", "60");
+            if (dlg3 != null || dlg3 != "") {
+                frames = dlg3;
+            }
+            wid = Math.floor((canv.width - 100) / rows);
+            hei = Math.floor(canv.height / cols);
+            for (var j = 0; j < rows; j++) {
+                for (var i = 0; i < cols; i++) {
+                    var cell = new Cell(i, j);
+                    grid.push(cell);
+                }
+            }
+            myInterval = setInterval(game, 1000 / frames);
+            canv.addEventListener("click", onClickFunction);
+
+            c.fillStyle = "red";
+            c.fillRect(canv.width - 100, 0, 100, 100);
+            c.fillRect(canv.width - 100, 150, 100, 100);
+            c.fillRect(canv.width - 100, 300, 100, 100);
+            c.fillStyle = "white";
+            c.fillRect(canv.width - 80, 20, 20, 60);
+            c.fillRect(canv.width - 40, 20, 20, 60);
+        }
+
+        function pause() {
+            clearInterval(myInterval);
+            paused = 1;
+            c.fillStyle = "red";
+            c.fillRect(canv.width - 100, 0, 100, 100);
+            c.fillStyle = "white";
+            c.beginPath();
+            c.moveTo(canv.width - 80, 20);
+            c.lineTo(canv.width - 20, 50);
+            c.lineTo(canv.width - 80, 80);
+            c.fill();
+        }
+
+        function unpause() {
+            myInterval = setInterval(game, 1000 / frames);
+            paused = 0;
+            c.fillStyle = "red";
+            c.fillRect(canv.width - 100, 0, 100, 100);
+            c.fillStyle = "white";
+            c.fillRect(canv.width - 80, 20, 20, 60);
+            c.fillRect(canv.width - 40, 20, 20, 60);
+        }
+
+        function onClickFunction(evt) {
+            var x = evt.clientX;     // Get the horizontal coordinate
+            var y = evt.clientY;     // Get the vertical coordinate
+            if (x < canv.width && x > canv.width - 100 && y < 100 && y > 0) {
+                if (!paused) {
+                    pause();
+                } else {
+                    unpause();
+                }
+            }
+            if (x < canv.width && x > canv.width - 100 && y < 250 && y > 150) {
+                grid = [];
+                for (var j = 0; j < rows; j++) {
+                    for (var i = 0; i < cols; i++) {
+                        var cell = new Cell(i, j);
+                        grid.push(cell);
+                    }
+                }
+                clearInterval(myInterval);
+                unpause();
+            }
+            if (x < canv.width && x > canv.width - 100 && y < 400 && y > 300) {
+                pause();
+                game();
+            }
+        }
+
+        function game() {
+            update();
+            var counter = [];
+            for (var i = 0; i < numCols; i++) { counter[i] = 0; }
+            for (var i = 0; i < grid.length; i++) {
+                grid[i].show();
+                if (grid[i].state == 1 && counter[grid[i].col] == 0) {
+                    counter[grid[i].col] = 1;
+                }
+            }
+            var sum = 0; for (var i = 0; i < numCols; i++) { sum += counter[i]; }
+            if (sum == 1) {
+                var ind = 0; for (var i = 0; i < numCols; i++) { if (counter[i] == 1) { ind = i; break; } }
+                clearInterval(myInterval);
+                c.font = "50px Georgia";
+                var txt = colors[ind] + " wins!";
+                c.fillStyle = "black";
+                c.fillRect(canv.width / 3 - 20, canv.height / 3 - 70, c.measureText(txt).width + 40, 100);
+                c.fillStyle = "white";
+                c.fillText(txt, canv.width / 3, canv.height / 3);
+            }
+        }
+
+        function update() {
+            for (var j = 0; j < rows; j++) {
+                for (var i = 0; i < cols; i++) {
+                    var neighbs = 0;
+                    var neighbsCols = [];
+                    for (var dj = -1; dj <= 1; dj++) {
+                        for (var di = -1; di <= 1; di++) {
+                            var ind = index(i + di, j + dj);
+                            if (!(di == 0 && dj == 0) && ind >= 0 && ind < rows * cols) {
+                                neighbs += grid[ind].state;
+                                if (grid[ind].state == 1) {
+                                    neighbsCols.push(grid[ind].col);
+                                }
+                            }
+                        }
+                    }
+                    grid[index(i, j)].neighbs = neighbs;
+                    grid[index(i, j)].neighbsCols = getMode(neighbsCols);
+                }
+            }
+            for (var i = 0; i < grid.length; i++) {
+                if (grid[i].state == 0) {
+                    if ((grid[i].neighbs == 3) || (grid[i].neighbs > 0 && Math.random() < prob)) {
+                        grid[i].state = 1;
+                        grid[i].col = grid[i].neighbsCols;
+                    }
+                } else if (grid[i].neighbs < 2 || grid[i].neighbs > 3) {
+                    grid[i].state = 0;
+                }
+            }
+        }
+
+        function getRandomInt(min, max) {
+            min = Math.ceil(min);
+            max = Math.floor(max);
+            return Math.floor(Math.random() * (max - min)) + min;
+        }
+
+        function getMode(arr) {
+            var counter = [];
+            for (var i = 0; i < numCols; i++) { counter[i] = 0; }
+            for (var i = 0; i < arr.length; i++) {
+                counter[arr[i]]++;
+            }
+            var curr = 0;
+            var ind = [];
+            for (var i = 0; i < counter.length; i++) {
+                if (counter[i] == curr) {
+                    ind.push(i);
+                }
+                if (counter[i] > curr) {
+                    curr = counter[i];
+                    ind = [];
+                    ind.push(i);
+                }
+            }
+            if (ind.length > 1) {
+                return ind[Math.floor(Math.random() * ind.length)]
+            } else {
+                return ind;
+            }
+        }
+
+        function index(i, j) {
+            if (i < 0 || j < 0 || i > cols - 1 || j > rows - 1) {
+                return -1;
+            } else {
+                return i + j * cols;
+            }
+        }
+
+        function Cell(i, j) {
+            this.x = i * wid;
+            this.y = j * hei;
+            this.neighbs = 0;
+            this.neighbsCols = [];
+            if (Math.random() < 0.125) {
+                this.state = 1;
+            } else {
+                this.state = 0;
+            }
+            this.col = getRandomInt(0, numCols);
+
+            this.show = function () {
+                if (this.state == 0) {
+                    c.fillStyle = "black";
+                } else if (this.state == 1) {
+                    c.fillStyle = colors[this.col];
+                }
+                c.fillRect(this.x, this.y, wid, hei);
+            }
+        } // END OF CELL CLASS
+
+    </script>
+
+
+    <style>
+        body {
+
+            padding: 20;
+
+            margin: 0;
+
+        }
+    </style>
+
+</head>
+
+
+
+<body>
+
+</body>
+
+
+
+</html>
