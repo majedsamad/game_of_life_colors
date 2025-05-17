@@ -9,99 +9,133 @@
 
     <canvas id="gc" width="1250" height="1250"></canvas>
     <script type="text/javascript">
-        cols = rows = 200;
-        numCols = 8;
+        cols = rows = 75; // Default, will be overridden by input
+        numCols = 8; // Default, will be overridden by input
         colors = ["red", "green", "blue", "yellow", "cyan", "pink", "purple", "orange"];
-        prob = 10 / (rows * cols);
+        prob = 10 / (rows * cols); // Will be re-calculated in startGame
         wid = hei = 0;
         grid = [];
-        var frames = 60;
+        var frames = 60; // Default, will be overridden by input
         var myInterval;
         var paused = 0;
+        var canv, c; // Declare globally
+
         window.onload = function () {
             canv = document.getElementById("gc");
             c = canv.getContext("2d");
-            var dlg1 = prompt("Please enter a grid size", "75");
-            if (dlg1 != null || dlg1 != "") {
-                rows = cols = dlg1;
+
+            document.getElementById("startGameBtn").addEventListener("click", startGame);
+            document.getElementById("pausePlayBtn").addEventListener("click", togglePausePlay);
+            document.getElementById("resetBtn").addEventListener("click", resetGame);
+            document.getElementById("stepBtn").addEventListener("click", stepGame);
+
+            // Initially disable game control buttons until game starts
+            document.getElementById("pausePlayBtn").disabled = true;
+            document.getElementById("resetBtn").disabled = true;
+            document.getElementById("stepBtn").disabled = true;
+        }
+
+        function startGame() {
+            var gridSizeInput = document.getElementById("gridSize").value;
+            if (gridSizeInput != null && gridSizeInput.trim() !== "") {
+                rows = cols = parseInt(gridSizeInput);
+            } else {
+                rows = cols = 75; // Default if empty
             }
-            var dlg2 = prompt("Please enter the number of colors", "8");
-            if (dlg2 != null || dlg2 != "") {
-                numCols = dlg2;
+            if (isNaN(rows) || rows <= 0) rows = cols = 75;
+
+
+            var numColorsInput = document.getElementById("numColors").value;
+            if (numColorsInput != null && numColorsInput.trim() !== "") {
+                numCols = parseInt(numColorsInput);
+            } else {
+                numCols = 8; // Default if empty
             }
-            var dlg3 = prompt("Please enter the number of frames per second", "60");
-            if (dlg3 != null || dlg3 != "") {
-                frames = dlg3;
+            if (isNaN(numCols) || numCols <= 0) numCols = 8;
+
+
+            var fpsInput = document.getElementById("fps").value;
+            if (fpsInput != null && fpsInput.trim() !== "") {
+                frames = parseInt(fpsInput);
+            } else {
+                frames = 60; // Default if empty
             }
-            wid = Math.floor((canv.width - 100) / rows);
-            hei = Math.floor(canv.height / cols);
+            if (isNaN(frames) || frames <= 0) frames = 60;
+            
+            prob = 10 / (rows * cols); // Update probability
+
+            wid = Math.floor(canv.width / rows); // Use full canvas width
+            hei = Math.floor(canv.height / cols); // Use full canvas height
+
+            grid = [];
             for (var j = 0; j < rows; j++) {
                 for (var i = 0; i < cols; i++) {
                     var cell = new Cell(i, j);
                     grid.push(cell);
                 }
             }
-            myInterval = setInterval(game, 1000 / frames);
-            canv.addEventListener("click", onClickFunction);
 
-            c.fillStyle = "red";
-            c.fillRect(canv.width - 100, 0, 100, 100);
-            c.fillRect(canv.width - 100, 150, 100, 100);
-            c.fillRect(canv.width - 100, 300, 100, 100);
-            c.fillStyle = "white";
-            c.fillRect(canv.width - 80, 20, 20, 60);
-            c.fillRect(canv.width - 40, 20, 20, 60);
+            if (myInterval) clearInterval(myInterval);
+            // unpause() will start the interval, set paused = 0, and update button text
+            unpause(); 
+
+            document.getElementById("pausePlayBtn").disabled = false;
+            document.getElementById("resetBtn").disabled = false;
+            document.getElementById("stepBtn").disabled = false;
+            // unpause() already sets button text to "Pause"
+        }
+
+        function togglePausePlay() {
+            var pausePlayBtn = document.getElementById("pausePlayBtn");
+            if (!pausePlayBtn || pausePlayBtn.disabled) return; 
+
+            if (!paused) {
+                pause();
+            } else {
+                unpause();
+            }
+        }
+
+        function resetGame() {
+            var resetBtn = document.getElementById("resetBtn");
+            if (!resetBtn || resetBtn.disabled) return;
+
+            if (c) c.clearRect(0, 0, canv.width, canv.height); // Clear entire canvas, including any win message
+            startGame(); // Re-initialize and start
+        }
+
+        function stepGame() {
+            var stepBtn = document.getElementById("stepBtn");
+            if (!stepBtn || stepBtn.disabled) return;
+
+            if (!paused) { 
+                pause();
+            }
+            // Execute one frame, even if interval was cleared (e.g. by win condition)
+            game(); 
         }
 
         function pause() {
             clearInterval(myInterval);
             paused = 1;
-            c.fillStyle = "red";
-            c.fillRect(canv.width - 100, 0, 100, 100);
-            c.fillStyle = "white";
-            c.beginPath();
-            c.moveTo(canv.width - 80, 20);
-            c.lineTo(canv.width - 20, 50);
-            c.lineTo(canv.width - 80, 80);
-            c.fill();
+            // Removed canvas drawing for button state
+            var pausePlayBtn = document.getElementById("pausePlayBtn");
+            if (pausePlayBtn) {
+                 pausePlayBtn.textContent = "Play";
+            }
         }
 
         function unpause() {
+            if (myInterval) clearInterval(myInterval); // Ensure no multiple intervals running
             myInterval = setInterval(game, 1000 / frames);
             paused = 0;
-            c.fillStyle = "red";
-            c.fillRect(canv.width - 100, 0, 100, 100);
-            c.fillStyle = "white";
-            c.fillRect(canv.width - 80, 20, 20, 60);
-            c.fillRect(canv.width - 40, 20, 20, 60);
+            // Removed canvas drawing for button state
+            var pausePlayBtn = document.getElementById("pausePlayBtn");
+            if (pausePlayBtn) {
+                pausePlayBtn.textContent = "Pause";
+            }
         }
 
-        function onClickFunction(evt) {
-            var x = evt.clientX;     // Get the horizontal coordinate
-            var y = evt.clientY;     // Get the vertical coordinate
-            if (x < canv.width && x > canv.width - 100 && y < 100 && y > 0) {
-                if (!paused) {
-                    pause();
-                } else {
-                    unpause();
-                }
-            }
-            if (x < canv.width && x > canv.width - 100 && y < 250 && y > 150) {
-                grid = [];
-                for (var j = 0; j < rows; j++) {
-                    for (var i = 0; i < cols; i++) {
-                        var cell = new Cell(i, j);
-                        grid.push(cell);
-                    }
-                }
-                clearInterval(myInterval);
-                unpause();
-            }
-            if (x < canv.width && x > canv.width - 100 && y < 400 && y > 300) {
-                pause();
-                game();
-            }
-        }
 
         function game() {
             update();
@@ -237,6 +271,19 @@
 
 
 <body>
+    <div id="controls" style="margin-bottom: 10px;">
+        <label for="gridSize">Grid Size:</label>
+        <input type="text" id="gridSize" value="75" size="5">
+        <label for="numColors">Number of Colors:</label>
+        <input type="text" id="numColors" value="8" size="3">
+        <label for="fps">FPS:</label>
+        <input type="text" id="fps" value="60" size="3">
+        <button id="startGameBtn">Start Game</button>
+        <br>
+        <button id="pausePlayBtn">Pause</button>
+        <button id="resetBtn">Reset</button>
+        <button id="stepBtn">Step</button>
+    </div>
 
 </body>
 
